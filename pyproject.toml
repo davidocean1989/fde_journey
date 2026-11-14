@@ -12,6 +12,7 @@ dependencies = [
     "httpx",
     "tenacity",
     "structlog",
+    "rich>=15.0.0",
 ]
 
 [dependency-groups]
