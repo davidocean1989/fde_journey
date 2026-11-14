@@ -20,8 +20,13 @@ async def healthz() -> dict[str, str]:
 @router.get("/readyz")
 async def readyz(response: Response) -> dict[str, object]:
     # W2 起往这里加真实依赖：llm_credentials / vector_store / disk
-    checks = {"config": True}
+    checks = _collect_checks()
     ready = all(checks.values())
     if not ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": "ready" if ready else "not_ready", "checks": checks}
+
+
+def _collect_checks() -> dict[str, bool]:
+    # W2 起往这里加真实依赖：llm_credentials / vector_store / disk
+    return {"config": True}
