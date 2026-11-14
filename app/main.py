@@ -6,7 +6,6 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-#import rich
 import structlog
 from fastapi import FastAPI
 
@@ -35,7 +34,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-#    rich.print("[bold green]rich ok[/]")
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
     app.include_router(health.router)
     app.add_exception_handler(AppError, app_error_handler)
