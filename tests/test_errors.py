@@ -4,6 +4,8 @@
 """
 
 from fastapi.testclient import TestClient
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError   
 
 from app.core.errors import BadRequestError
 from app.main import app
@@ -51,3 +53,34 @@ def test_custom_status_code_overrides_default() -> None:
     assert set(body["error"]) == {"code", "message", "request_id"}
     assert body["error"]["code"] == "bad_request"
     assert body["error"]["message"] == "y"
+
+# 测试 Starlette HTTPException 的捕获处理
+def test_starlette_http_error_returns_404() -> None:
+    @app.get("/__test/nonexistent")
+    async def _nonexistent() -> None:
+        raise StarletteHTTPException(status_code=404, detail="not found")
+    
+    with TestClient(app, raise_server_exceptions=False) as client:
+        resp = client.get("/__test/nonexistent")
+
+    assert resp.status_code == 404
+    body = resp.json()
+    assert set(body["error"]) == {"code", "message", "request_id"}
+    assert body["error"]["code"] == "not_found"
+  
+
+
+# 测试 RequestValidationError 的捕获处理
+def test_request_validation_error_returns_422() -> None:
+    @app.get("/__test/validate")
+    async def _validate(x: int) -> None:
+        raise RequestValidationError([])
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        resp = client.get("/__test/validate?x=not_an_int")
+
+    assert resp.status_code == 422
+    body = resp.json()
+    assert set(body["error"]) == {"code", "message", "request_id"}
+    assert body["error"]["code"] == "validation_error"
+    assert "not_an_int" not in body["error"]["code"]

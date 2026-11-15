@@ -11,7 +11,8 @@ from fastapi import FastAPI
 
 from app.api import health
 from app.config import settings
-from app.core.errors import AppError, app_error_handler, unhandled_error_handler
+from app.core.errors import AppError, app_error_handler, unhandled_error_handler, starlettehttp_error_handler, requestvalidation_error_handler
+from app.core.errors import StarletteHTTPException, RequestValidationError
 
 structlog.configure(
     processors=[
@@ -24,7 +25,7 @@ log = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None,None]:
     # 启动时只做一次重活（建连接、加载索引），别在请求里反复做
     log.info("app_start", app=settings.app_name, env=settings.env)
     app.state.ready = True
@@ -38,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(Exception, unhandled_error_handler)
+    app.add_exception_handler(StarletteHTTPException, starlettehttp_error_handler)
+    app.add_exception_handler(RequestValidationError, requestvalidation_error_handler)
     return app
 
 

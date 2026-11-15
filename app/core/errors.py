@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import structlog
 from fastapi import Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 log = structlog.get_logger()
@@ -41,6 +43,8 @@ class UpstreamError(AppError):
     status_code = 502
 
 
+
+
 def _payload(request: Request, code: str, message: str) -> dict:
     return {
         "error": {
@@ -63,4 +67,20 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     return JSONResponse(
         status_code=500,
         content=_payload(request, "internal_error", "服务内部错误，请带 request_id 反馈"),
+    )
+
+#   对 Starlette HTTPException 的捕获处理
+async def starlettehttp_error_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    log.warning("starlette_http_error", path=request.url.path)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_payload(request, "not_found" if exc.status_code == 404 else "http_error", exc.detail),
+    )
+
+# 对 request validation 错误的捕获处理
+async def requestvalidation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    log.warning("request_validation_error", path=request.url.path, detail=str(exc.errors()[0]))
+    return JSONResponse(
+        status_code=422,
+        content=_payload(request, "validation_error", str(exc.errors()[0]))
     )
